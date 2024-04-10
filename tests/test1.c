@@ -29,10 +29,10 @@ int main() {
     bigint_print(result);
     printf("\n");
     bigint_delete(n);
-    bigint_delete(result);
 
     bigint tmp = bigint_from_string("93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000");
     assert(bigint_eq(result, tmp));
+    bigint_delete(result);
     bigint_delete(tmp);
     printf("Test passed\n");
 

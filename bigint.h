@@ -503,7 +503,9 @@ bigint bigint_div(bigint a, bigint b) {
 
 bigint bigint_mod(bigint a, bigint b) {
     if (bigint_is_64_bit(a) && bigint_is_64_bit(b)) {
-        return bigint_from_int(bigint_to_int(a) % bigint_to_int(b));
+        bigint result = bigint_from_int(bigint_to_int(a) % bigint_to_int(b));
+        // printf("Computing %lld %% %lld = %lld\n", bigint_to_int(a), bigint_to_int(b), bigint_to_int(result));
+        return result;
     }
 
     bigint remainder;
@@ -532,30 +534,122 @@ bigint bigint_pow(bigint a, bigint b) {
     return result;
 }
 
+bool bigint_is_odd(bigint n);
+bool bigint_is_even(bigint n);
+
 bigint bigint_fast_pow(bigint a, bigint b, bigint m) {
+    if (bigint_is_64_bit(a) && bigint_is_64_bit(b) && bigint_is_64_bit(m)) {
+        int64_t result = 1;
+        int64_t base = bigint_to_int(a);
+        int64_t exp = bigint_to_int(b);
+        int64_t mod = bigint_to_int(m);
+        base %= mod;
+        while (exp > 0) {
+            if (exp % 2 == 1) {
+                result = (result * base) % mod;
+            }
+            exp = exp >> 1;
+            base = (base * base) % mod;
+        }
+        return bigint_from_int(result);
+    }
+    
     bigint result;
+
     if (b.is_negative) {
         result = bigint_from_string("0");
         return result;
     }
-    result = bigint_from_string("1");
     if (bigint_eqzero(b)) {
+        result = bigint_from_string("1");
         return result;
     }
+
     bigint tmp1, tmp2;
+    // printf("Computing %lld ^ %lld mod %lld\n", bigint_to_int(a), bigint_to_int(b), bigint_to_int(m));
     b = bigint_copy(b);
     a = bigint_mod(a, m);
-    while (!bigint_eqzero(b)) {
-        tmp1 = bigint_mul(result, a);
+    result = bigint_copy(a);
+    bigint b_save = bigint_copy(b);
+    bigint_dec(&b);
+
+    bigint pow = bigint_from_string("1");
+    while (true) {
+        tmp1 = bigint_from_string("2");
+        tmp2 = bigint_div(b, tmp1);
+        bigint_delete(tmp1);
+        if (!bigint_gtzero(tmp2)) {
+            bigint_delete(tmp2);
+            break;
+        }
+        bigint_delete(tmp2);
+
+        tmp1 = bigint_mul(result, result);
         tmp2 = result;
         result = bigint_mod(tmp1, m);
         bigint_delete(tmp1);
         bigint_delete(tmp2);
-        bigint_dec(&b);
-    }
-    bigint_delete(a);
-    bigint_delete(b);
 
+        // Halve b
+        tmp1 = b;
+        tmp2 = bigint_from_string("2");
+        
+        b = bigint_div(b, tmp2);
+        bigint_delete(tmp1);
+        bigint_delete(tmp2);
+        
+        tmp1 = pow;
+        pow = bigint_add(pow, pow);
+        bigint_delete(tmp1);
+    }
+    
+    tmp1 = b_save;
+    b_save = bigint_sub(b_save, pow);
+    bigint_delete(tmp1);
+
+    if (bigint_is_odd(b_save)) {
+        tmp1 = result;
+        tmp2 = bigint_mul(result, a);
+        result = bigint_mod(tmp2, m);
+        bigint_delete(tmp1);
+        bigint_delete(tmp2);
+        bigint_dec(&b_save);
+        bigint_inc(&pow);
+    }
+
+    if (bigint_lt(b_save, bigint_from_int(5))) {
+        while (!bigint_eqzero(b_save)) {
+            tmp1 = result;
+            tmp2 = bigint_mul(result, a);
+            result = bigint_mod(tmp2, m);
+            bigint_delete(tmp1);
+            bigint_delete(tmp2);
+            bigint_dec(&b_save);
+            bigint_inc(&pow);
+        }
+
+        bigint_delete(b_save);
+        bigint_delete(pow);
+
+        return result;
+    }
+
+    // Do the same halving powers for the subpart
+    bigint subpart = bigint_fast_pow(a, b_save, m);
+
+    tmp1 = result;
+    tmp2 = subpart;
+    result = bigint_mul(result, subpart);
+    bigint_delete(tmp1);
+    bigint_delete(tmp2);
+
+    tmp1 = result;
+    result = bigint_mod(result, m);
+    bigint_delete(tmp1);
+
+    bigint_delete(b_save);
+    bigint_delete(pow);
+    
     return result;
 }
 

@@ -21,7 +21,7 @@ add_executable(test2 tests/test2.c)
 add_executable(test3 tests/test3.c)
 
 # Add debug flags
-set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0 -fsanitize=address")
 
 # add_executable(test3 tests/test3.c)
 

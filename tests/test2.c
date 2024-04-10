@@ -163,11 +163,11 @@ int main() {
 
 
     // Test fast modular exponentiation
-    x = bigint_from_int(2);
-    y = bigint_from_int(10);
-    z = bigint_from_int(100);
+    x = bigint_from_int(745232);
+    y = bigint_from_int(67121);
+    z = bigint_from_int(1022117);
     tmp = bigint_fast_pow(x, y, z);
-    t = bigint_from_int(24);
+    t = bigint_from_int(97);
     assert(bigint_eq(tmp, t));
     bigint_delete(x);
     bigint_delete(y);
